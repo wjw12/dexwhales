@@ -13,7 +13,7 @@ function numberOfWhales(price) {
 
 function formatNumber(x) {
     x = x.toFixed(2)
-    return x.toString().replace(/\B(?<!\.\d*)(?=(\d{3})+(?!\d))/g, ",")
+    return x.toLocaleString()// toString().replace(/\B(?<!\.\d*)(?=(\d{3})+(?!\d))/g, ",")
 }
 
 function formatTx(hash) {
