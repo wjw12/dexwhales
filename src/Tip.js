@@ -9,7 +9,7 @@ export default function Tip() {
 
         var user_address = web3.eth.accounts[0]
         web3.eth.sendTransaction({
-            to: '0x677BBa535f794c1C489b329a51e779EE99F0a92f',
+            to: '0x5A269Bc2Af2Fd45De080BBD7D30dF9B4F82F4BB9',
             from: user_address,
             value: web3.toWei(value, 'ether')
         }, function (err, transactionHash) {
