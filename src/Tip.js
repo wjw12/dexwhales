@@ -17,6 +17,7 @@ export default function Tip() {
         alert('Thank you!')
         })    
     }
+    
 
     return (
         <div style={{
