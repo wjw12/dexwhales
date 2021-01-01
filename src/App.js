@@ -237,6 +237,9 @@ function App() {
         removeLP: _removeLP
       })
     })
+    .catch (e => {
+      setTimeout(() => { refreshData()}, 1000)
+    })
   }
   
   const refreshDisplay = (config) => {
