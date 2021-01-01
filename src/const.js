@@ -21,6 +21,8 @@ export const action_types = {
 export const PINK = "#FF71CB"
 
 export const WHALE = "🐳"
+export const WATER = "💧"
+export const REMOVE_WATER = "☔️"
 
 export const THEME_COLOR = {
     UNISWAP: PINK,

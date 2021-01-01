@@ -1,12 +1,22 @@
-import react, { useEffect, useState } from 'react'
-import Select from 'react-select';
+import { useEffect, useState, useRef } from 'react'
+import Select from 'react-select'
+import makeAnimated from 'react-select/animated'
 import Loader from 'react-loader-spinner'
 import "react-loader-spinner/dist/loader/css/react-spinner-loader.css"
-import { getTimeString, useInterval } from './utils'
+import { getTimeString, useInterval, getNotificationDescription } from './utils'
 import Card from './Card'
 import Tip from './Tip'
 import { TITLE, API_URL, INTERVAL, action_types, markets, PINK } from './const'
 import './App.css';
+import uniswap_logo from './uniswap.png'
+import sushiswap_logo from './sushiswap.png'
+
+
+import worker from 'workerize-loader!./serviceWorker'; // eslint-disable-line import/no-webpack-loader-syntax
+
+const workerInstance = worker()
+
+const animatedComponents = makeAnimated();
 
 function buildQuery(queryParams) {
   var query = "?"
@@ -16,18 +26,16 @@ function buildQuery(queryParams) {
   return API_URL + query
 }
 
-function sortDescendingTimestamp(a, b) {
-  return b.timestamp - a.timestamp
-}
-
 // fetch transactions order by timestamp, descending order
 async function fetchData(from_timestamp, to_timestamp) {
   var params = {}
   if (from_timestamp) params.from_timestamp = from_timestamp
   if (to_timestamp) params.to_timestamp = to_timestamp
+
+  // params.debug = true
   var res = await fetch(buildQuery(params))
   if (!res.ok) {
-    console.log(`error: ${res.status}`)
+    console.error(`error: ${res.status}`)
     return {
       success: false,
       swaps: [],
@@ -37,25 +45,29 @@ async function fetchData(from_timestamp, to_timestamp) {
   }
 
   var result = await res.json()
-  console.log("count:", result.Count)
-  var actions = result.Items
+
   var swaps = []
   var addLP = []
   var removeLP = []
+  var latestTime = null
+  for (var actionsWithinBlock of result) {
+    var actions = JSON.parse(actionsWithinBlock)
+    for (var action of actions) {
+      if (!latestTime || action.timestamp > latestTime) latestTime = action.timestamp
 
-  for (var action of actions) {
-    switch (action.name) {
-      case 'Swap':
-        swaps.push(action)
-        break
-      case 'AddLiquidity':
-        addLP.push(action)
-        break
-      case 'RemoveLiquidity':
-        removeLP.push(action)
-        break
-      default:
-        break
+      switch (action.name) {
+        case 'Swap':
+          swaps.push(action)
+          break
+        case 'AddLiquidity':
+          addLP.push(action)
+          break
+        case 'RemoveLiquidity':
+          removeLP.push(action)
+          break
+        default:
+          break
+      }
     }
   }
 
@@ -64,6 +76,7 @@ async function fetchData(from_timestamp, to_timestamp) {
     swaps: swaps,
     addLP: addLP,
     removeLP: removeLP,
+    latestTime: latestTime
   }
 
 }
@@ -97,19 +110,79 @@ const Checkbox = props => <input type="checkbox" {...props} />;
 
 function App() {
   const [lastTime, setLastTime] = useState(0)
-  const [swaps, setSwaps] = useState([])
-  const [addLP, setAddLP] = useState([])
-  const [removeLP, setRemoveLP] = useState([])
+  const [txData, setTxData] = useState({
+    swaps: [],
+    addLP: [],
+    removeLP: []
+  })
   const [actionList, setActionList] = useState([])
   const [loading, setLoading] = useState(false)
+  const [processing, setProcessing] = useState(false)
   const [displayConfig, setDisplayConfig] = useState(defaultDisplayConfig)
+  const [tokenList, setTokenList] = useState([])
+  const [selectedTokens, setSelectedTokens] = useState(JSON.parse(localStorage.getItem('selectedTokens')) || [])
+  const [notify, setNotify] = useState(false)
+  const latestTxTime = useRef(0)
+  // const [clientId, setClientId] = useState(null)
 
-  function refreshData() {
+  // function initClient() {
+  //   fetch(API_URL, { method: 'POST' })
+  //   .then(res => res.json())
+  //   .then(res => {
+  //     setClientId(res)
+  //   })
+  // }
+
+  const toggleNotification = () => {
+    if (notify) {
+      // turn off notification
+      setNotify(false)
+    }
+    else {
+      // start notification
+      Notification.requestPermission().then(status => {
+        if (status === 'granted') {
+          setNotify(true)
+        }
+      })
+      .catch(_ => {
+        alert('Notification is not supported by the browser')
+      })
+    }
+  }
+
+  const createNotification = (action) => {
+    var description = getNotificationDescription(action)
+    var img = uniswap_logo
+    switch (action.market) { // could be undefined
+      case 'sushiswap':
+          img = sushiswap_logo
+          break
+      default:
+          img = uniswap_logo
+          break
+    }
+    console.log(description)
+    var notification = new Notification('New Whale Transaction', { body: description, icon: img})
+  }
+
+  const isTokenSelected = (address) => {
+    if (tokenList.length == 0) return true
+    address = address.toLowerCase()
+    for (var tokenData of tokenList) {
+      if (address === tokenData.address) {
+        return true
+      }
+    }
+    return false
+  }
+
+  const refreshData = () => {
     if (loading) return
     setLoading(true)
     
-    console.log('refreshData')
-    fetchData(lastTime).then(data => {
+    // console.log('refreshData last sync time=',lastTime)
+    fetchData(latestTxTime.current).then(data => {
       setLoading(false)
       if (data.success) {
         var now = Math.floor(Date.now() / 1000)
@@ -120,36 +193,98 @@ function App() {
         setTimeout(() => { refreshData()}, 1000)
         return
       }
-      var _swaps = swaps.concat(data.swaps)
-      var _addLP = addLP.concat(data.addLP)
-      var _removeLP = removeLP.concat(data.removeLP)
+      if (data.swaps.length == 0 && data.addLP.length == 0 && data.removeLP.length == 0) {
+        return
+      }
 
-      setSwaps(_swaps)
-      setAddLP(_addLP)
-      setRemoveLP(_removeLP)
+      if (notify && latestTxTime.current > 0) {
+        if (displayConfig.SWAPS && data.swaps.length > 0) {
+          for (var action of data.swaps) {
+            if (isTokenSelected(action.token0) || isTokenSelected(action.token1)) {
+              createNotification(action)
+            }
+          }
+        }
+        if (displayConfig.ADD_LP && data.addLP.length > 0) {
+          for (var action of data.addLP) {
+            if (isTokenSelected(action.token0) || isTokenSelected(action.token1)) {
+              createNotification(action)
+            }
+          }
+        }
+        if (displayConfig.REMOVE_LP && data.removeLP.length > 0) {
+          for (var action of data.removeLP) {
+            if (isTokenSelected(action.token0) || isTokenSelected(action.token1)) {
+              createNotification(action)
+            }
+          }
+        }
+      }
 
-      refreshDisplay()
+      if (data.latestTime) {
+        latestTxTime.current = data.latestTime + 1
+        // console.log('latest tx time', data.latestTime)
+      }
+
+      var _swaps = txData.swaps.concat(data.swaps)
+      var _addLP = txData.addLP.concat(data.addLP)
+      var _removeLP = txData.removeLP.concat(data.removeLP)
+
+
+      setTxData({
+        swaps: _swaps,
+        addLP: _addLP,
+        removeLP: _removeLP
+      })
     })
   }
   
   const refreshDisplay = (config) => {
     if (!config) config = displayConfig
     var displayList = []
-    if (config.SWAPS) displayList = displayList.concat(swaps)
-    if (config.ADD_LP) displayList = displayList.concat(addLP)
-    if (config.REMOVE_LP) displayList = displayList.concat(removeLP)
-    displayList = displayList.sort(sortDescendingTimestamp)
-    setActionList(displayList)
+    if (config.SWAPS) displayList = displayList.concat(txData.swaps)
+    if (config.ADD_LP) displayList = displayList.concat(txData.addLP)
+    if (config.REMOVE_LP) displayList = displayList.concat(txData.removeLP)
+    if (displayList.length == 0) {
+      setActionList(displayList) // empty
+      return
+    }
+    setProcessing(true) // begin processing transaction data
+    workerInstance.sortTransactions(displayList, selectedTokens).then(sortedList => {
+      setActionList(sortedList)
+      setProcessing(false)
+    })
+    // displayList = displayList.sort(sortDescendingTimestamp)
+    // setActionList(displayList)
+  }
+
+  const loadTokenList = () => {
+    fetch(buildQuery({token_list: true}))
+    .then(res => res.json())
+    .then(result => {
+       setTokenList(result)
+    })
   }
 
   useEffect(() => {
     refreshDisplay()
-  }, [swaps, addLP, removeLP])
+  }, [txData, selectedTokens])
 
   useEffect(() => {
+    localStorage.setItem('selectedTokens', JSON.stringify(selectedTokens))
+  }, [selectedTokens])
+
+  useEffect(() => {
+    // on page loaded
     document.title = TITLE
     refreshData()
+    loadTokenList()
+    // initClient()
   }, [])
+
+  // useEffect(() => {
+  //   refreshData()
+  // }, [clientId])
 
   useInterval(refreshData, INTERVAL)
 
@@ -160,6 +295,32 @@ function App() {
         <h1>
           {TITLE}
         </h1>
+
+        <div 
+          style={{
+            width: '55%', 
+            margin: 'auto'
+        }}>
+        <p style={{
+          fontSize: '10px',
+          textAlign: 'left'
+        }}>Last Updated at {getTimeString(lastTime)} {'  '}
+         <a  href="/#" onClick={() => toggleNotification()}>Notification {notify ? 'On' : 'Off'}</a> 
+        </p>
+        
+        <Select
+          closeMenuOnSelect={false}
+          components={animatedComponents}
+          placeholder={"Select tokens..."}
+          isMulti
+          options={tokenList}
+          defaultValue={selectedTokens}
+          getOptionLabel={tokenData => `${tokenData.symbol}`}
+          getOptionValue={tokenData => `${tokenData.symbol}`}
+          onChange={action => setSelectedTokens(action)}
+        />
+        </div>
+
 
         <Note Tag="label">
           <Checkbox
@@ -206,28 +367,29 @@ function App() {
             width={16}
             style={{
               position: 'fixed',
-              left: '16px',
-              top: '16px',
+              left: '8px',
+              top: '8px',
               display: 'inline-block'
             }}
           />
         }
-
-        <p style={{
-          position: 'fixed',
-          textAlign: 'left',
-          left: '4px',
-          top: '4px',
-          marginTop: 0,
-          marginLeft: 0,
-          fontSize: '10px'
-        }}>Last Updated at {getTimeString(lastTime)}</p>
 
         {actionList.map(action => {
           return (
             <Card action={action}></Card>
           )
         })}
+
+        { (!loading && !processing && actionList.length < 5) &&
+          <div style={{
+            width: '55%', 
+            margin: 'auto',
+            fontSize: '15px'
+          }}>
+            <p>No more whale activities within the past 24 hours</p>
+          </div>
+
+        }
 
       </div>
 

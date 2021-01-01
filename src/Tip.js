@@ -8,8 +8,12 @@ export default function Tip() {
         }
 
         var user_address = web3.eth.accounts[0]
+
+        if (!user_address) {
+            return alert('Please connect with your wallet')
+        }
         web3.eth.sendTransaction({
-            to: '0x5A269Bc2Af2Fd45De080BBD7D30dF9B4F82F4BB9',
+            to: '0x108616595d907Fe2e6E60DAC7004f96E14dA69Ba',
             from: user_address,
             value: web3.toWei(value, 'ether')
         }, function (err, transactionHash) {
@@ -17,7 +21,7 @@ export default function Tip() {
         alert('Thank you!')
         })    
     }
-    
+
 
     return (
         <div style={{
