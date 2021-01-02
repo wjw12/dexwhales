@@ -10,6 +10,7 @@ import { TITLE, API_URL, INTERVAL, action_types, markets, PINK } from './const'
 import './App.css';
 import uniswap_logo from './uniswap.png'
 import sushiswap_logo from './sushiswap.png'
+import oneinch_logo from './1inch.png'
 
 
 import worker from 'workerize-loader!./serviceWorker'; // eslint-disable-line import/no-webpack-loader-syntax
@@ -157,6 +158,9 @@ function App() {
     switch (action.market) { // could be undefined
       case 'sushiswap':
           img = sushiswap_logo
+          break
+      case '1inch':
+          img = oneinch_logo
           break
       default:
           img = uniswap_logo

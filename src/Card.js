@@ -3,6 +3,7 @@ import { WHALE, WATER, REMOVE_WATER } from './const'
 import { getTimeString, numberOfWhales, formatNumber, formatTx, getTxLink, getTokenLink } from './utils'
 import uniswap_logo from './uniswap.png'
 import sushiswap_logo from './sushiswap.png'
+import oneinch_logo from './1inch.png'
 
 
 export default function Card(props) {
@@ -51,6 +52,10 @@ export default function Card(props) {
         case 'sushiswap':
             logo = sushiswap_logo
             marketName = "Sushiswap"
+            break
+        case '1inch':
+            logo = oneinch_logo
+            marketName = "1inch"
             break
         default:
             logo = uniswap_logo
