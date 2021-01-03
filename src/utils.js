@@ -109,6 +109,9 @@ export function getNotificationDescription(action) {
         case 'sushiswap':
             marketName = "Sushiswap"
             break
+        case '1inch':
+            marketName = "1inch"
+            break
         default:
             marketName = 'Uniswap'
             break
