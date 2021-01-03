@@ -85,7 +85,8 @@ async function fetchData(from_timestamp, to_timestamp) {
 var defaultDisplayConfig = {
   SWAPS: true,
   ADD_LP: false,
-  REMOVE_LP: false
+  REMOVE_LP: false,
+  NEW_PAIR: false
 }
 
 for (var key of Object.keys(markets)) {
@@ -223,6 +224,15 @@ function App() {
             }
           }
         }
+
+        // for new pairs, ignore the token filter
+        if (displayConfig.NEW_PAIR && data.addLP.length > 0) {
+          for (var action of data.addLP) {
+            if (action.newPair) {
+              createNotification(action)
+            }
+          }
+        }
       }
 
       if (data.latestTime) {
@@ -252,6 +262,7 @@ function App() {
     if (config.SWAPS) displayList = displayList.concat(txData.swaps)
     if (config.ADD_LP) displayList = displayList.concat(txData.addLP)
     if (config.REMOVE_LP) displayList = displayList.concat(txData.removeLP)
+    if (config.NEW_PAIR) displayList = displayList.concat(txData.addLP.filter(action => { return action.newPair }))
     if (displayList.length == 0) {
       setActionList(displayList) // empty
       return
@@ -364,6 +375,18 @@ function App() {
             id="cypress-single__searchable-checkbox"
           />
           REMOVE LIQUIDITY
+        </Note>
+        <Note Tag="label" style={{ marginLeft: '1em' }}>
+          <Checkbox
+            checked={displayConfig.NEW_PAIR}
+            onChange={() => { 
+              var newConfig = {...displayConfig, NEW_PAIR: !displayConfig.NEW_PAIR}
+              setDisplayConfig(newConfig); 
+              refreshDisplay(newConfig); 
+            }}
+            id="cypress-single__searchable-checkbox"
+          />
+          NEW PAIRS
         </Note>
 
         { loading &&

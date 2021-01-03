@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import { WHALE, WATER, REMOVE_WATER } from './const'
+import { WHALE, WATER, REMOVE_WATER, CREATE_NEW_PAIR } from './const'
 
 export function getTimeString(blockTimestamp) {
     blockTimestamp = parseInt(blockTimestamp) * 1000
@@ -82,6 +82,11 @@ export function getNotificationDescription(action) {
             emoji = REMOVE_WATER
             action_type = "Remove Liquidity"
             break
+    }
+    
+    if (action.newPair) {
+        emoji = CREATE_NEW_PAIR
+        action_type = "Create New Pair"
     }
     for (var i = 0; i < numberOfWhales(action); ++i) {
         whales += emoji

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { WHALE, WATER, REMOVE_WATER } from './const'
+import { WHALE, WATER, REMOVE_WATER, CREATE_NEW_PAIR } from './const'
 import { getTimeString, numberOfWhales, formatNumber, formatTx, getTxLink, getTokenLink } from './utils'
 import uniswap_logo from './uniswap.png'
 import sushiswap_logo from './sushiswap.png'
@@ -27,10 +27,14 @@ export default function Card(props) {
             action_type = "Remove Liquidity"
             break
     }
+
+    if (action.newPair) {
+        emoji = CREATE_NEW_PAIR
+        action_type = "Create New Pair"
+    }
     for (var i = 0; i < numberOfWhales(action); ++i) {
         whales += emoji
     }
-
 
     var token0Link = getTokenLink(action.token0)
     var token1Link = getTokenLink(action.token1)
