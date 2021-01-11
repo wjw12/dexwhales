@@ -48,13 +48,13 @@ export default function Tip() {
                 <a href="/#" onClick={() => makeTip(1)}>Ξ1.000</a>
             </p>
             <p className="compact-paragraph">
-                Developer: <a href="https://twitter.com/artoriamaster">Twitter</a>
+                Developer: <a href="https://twitter.com/artoriamaster">@artoriamaster</a>
             </p>
             <p className="compact-paragraph">
-                Twitter Bot: <a href="https://twitter.com/dex_whales">Twitter</a>
+                Twitter Bot: <a href="https://twitter.com/dex_whales">@dex_whales</a>
             </p>
             <p className="compact-paragraph">
-                Github: <a href="https://github.com/wjw12/dexwhales">Twitter</a>
+                Github: <a href="https://github.com/wjw12/dexwhales">DEX Whales</a>
             </p>
 
         </div>
