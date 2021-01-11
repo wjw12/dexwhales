@@ -51,7 +51,7 @@ export default function Tip() {
                 Developer: <a href="https://twitter.com/artoriamaster">Twitter</a>
             </p>
             <p className="compact-paragraph">
-                Twitter Bot: <a href="https://twitter.com/DexWhales">Twitter</a>
+                Twitter Bot: <a href="https://twitter.com/dex_whales">Twitter</a>
             </p>
             <p className="compact-paragraph">
                 Github: <a href="https://github.com/wjw12/dexwhales">Twitter</a>
