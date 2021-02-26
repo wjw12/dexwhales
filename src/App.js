@@ -316,6 +316,16 @@ function App() {
 
         <div 
           style={{
+            position: 'fixed',
+            right: '10px',
+            top: '10px',
+            display: 'inline-block'
+        }}>
+        <a href="https://alchemyapi.io/?referral=cc0b2918-0ee1-46cd-aa4a-8310f7456320"><img style={{ width: '240px', height: '53px'}} src="https://static.alchemyapi.io/images/marketing/badgeLight.png" alt="Alchemy Supercharged" /></a>
+        </div>
+
+        <div 
+          style={{
             width: '55%', 
             margin: 'auto'
         }}>
